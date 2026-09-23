@@ -1,0 +1,138 @@
+# Release. Separate from CI on purpose: CI proves the code is good on every
+# push, this builds and publishes the binaries an operator downloads.
+#
+# It fires on a pushed tag and on nothing else, and takes no input — the
+# version is the tag's name without its leading v:
+#   git tag v1.2.0 && git push origin v1.2.0
+#
+# The version reaches the binary through -ldflags, so `nexora-migrate -version`
+# and the release page always agree.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  # A release that does not pass its own tests is not a release.
+  verify:
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: gofmt -l . | tee /dev/stderr | (! read)
+      - run: go vet ./...
+      - run: go test -shuffle=on -count=1 ./...
+
+  # One job per platform. The build is cgo-free, so every target
+  # cross-compiles on the same Linux runner.
+  build:
+    needs: verify
+    runs-on: ubicloud-standard-2
+    strategy:
+      fail-fast: true
+      matrix:
+        # One entry per published platform; macOS ships for Apple silicon only.
+        include:
+          - { os: windows, arch: amd64 }
+          - { os: windows, arch: arm64 }
+          - { os: linux, arch: amd64 }
+          - { os: linux, arch: arm64 }
+          - { os: darwin, arch: arm64 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build and archive
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          set -eu
+          version="${GITHUB_REF_NAME#v}"
+          ext=""
+          [ "$GOOS" = "windows" ] && ext=".exe"
+          mkdir -p stage dist
+          go build -trimpath -ldflags "-s -w -X main.version=$version" -o "stage/nexora-migrate$ext" .
+          # No version in the file name: that is what keeps
+          # releases/latest/download/<file> — the link the docs give — valid
+          # for every release. The version is in the binary and the tag.
+          name="nexora-migrate-$GOOS-$GOARCH"
+          if [ "$GOOS" = "windows" ]; then
+            (cd stage && zip -q "../dist/$name.zip" "nexora-migrate$ext")
+          else
+            tar -czf "dist/$name.tar.gz" -C stage "nexora-migrate$ext"
+          fi
+          ls -l dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 7
+
+  # Gathers the five archives, writes the checksums, and publishes the release.
+  release:
+    needs: build
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: build-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+          notes=$(mktemp)
+          # One download counter per file, plus the release's total.
+          # shields.io reads each number from the GitHub API on every view,
+          # so the notes never need editing.
+          shields="https://img.shields.io/github/downloads/$GITHUB_REPOSITORY/$GITHUB_REF_NAME"
+          files="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME"
+          row() {
+            echo "| $1 | [\`$2\`]($files/$2) | ![]($shields/$2?label=downloads) |"
+          }
+          {
+            echo "![Downloads of this version]($shields/total?label=downloads)"
+            echo
+            echo "Download the file for your machine, run it, and the wizard opens in your browser."
+            echo
+            echo "| Platform | File | Downloads |"
+            echo "| --- | --- | --- |"
+            row "Windows (Intel/AMD)" nexora-migrate-windows-amd64.zip
+            row "Windows (ARM)" nexora-migrate-windows-arm64.zip
+            row "Linux (Intel/AMD)" nexora-migrate-linux-amd64.tar.gz
+            row "Linux (ARM)" nexora-migrate-linux-arm64.tar.gz
+            row "macOS (Apple silicon)" nexora-migrate-darwin-arm64.tar.gz
+            echo
+            echo "Checksums are in \`SHA256SUMS\`."
+          } > "$notes"
+          # A re-pushed tag updates the existing release's files instead of
+          # failing on it.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" ./* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" ./* \
+              --title "nexora-migrate $VERSION" \
+              --notes-file "$notes" \
+              --verify-tag
+          fi

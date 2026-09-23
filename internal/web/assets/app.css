@@ -1,0 +1,280 @@
+/* The wizard's whole stylesheet. No build step: this file is what ships. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --ink: #16181d;
+  --muted: #656c7a;
+  --line: #e2e5ea;
+  --brand: #2f6df6;
+  --brand-ink: #ffffff;
+  --warn: #b06a00;
+  --warn-bg: #fff6e5;
+  --bad: #c0392b;
+  --bad-bg: #fdeceb;
+  --ok: #1d7a4c;
+  --radius: 10px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --card: #1c1f25;
+    --ink: #e8eaee;
+    --muted: #9aa2b1;
+    --line: #2b2f37;
+    --brand: #5b8dff;
+    --brand-ink: #0d1017;
+    --warn: #e6a94a;
+    --warn-bg: #2e2616;
+    --bad: #ef6b5e;
+    --bad-bg: #33201e;
+    --ok: #56c98c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* The wizard hides and shows most of its chrome with the `hidden` attribute.
+   Anything below that sets `display` would otherwise win on specificity and
+   bring a hidden block back — which is how a form ends up showing the file
+   picker and the API login at the same time. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.6 system-ui, "Segoe UI", Vazirmatn, Tahoma, sans-serif;
+}
+
+/* ── chrome ─────────────────────────────────────────────────────── */
+
+.bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 20px;
+  background: var(--card); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 5;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+.bar-right { display: flex; align-items: center; gap: 12px; }
+.origin { color: var(--muted); font-size: 13px; font-family: var(--mono); }
+.lang {
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px;
+  font-family: inherit;
+}
+
+.steps {
+  display: flex; gap: 4px; padding: 12px 20px 0; flex-wrap: wrap;
+  max-width: 1080px; margin: 0 auto;
+}
+.steps button {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: 0; color: var(--muted);
+  padding: 8px 12px; border-radius: 8px; cursor: default; font-size: 13px;
+}
+.steps button i {
+  font-style: normal; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--line); color: var(--muted);
+  display: grid; place-items: center; font-size: 12px;
+}
+.steps button.on { color: var(--ink); background: var(--card); }
+.steps button.on i { background: var(--brand); color: var(--brand-ink); }
+.steps button.past i { background: var(--ok); color: #fff; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 16px 20px 64px; }
+
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+h1 { font-size: 21px; margin: 0 0 6px; }
+h2 { font-size: 16px; margin: 22px 0 8px; }
+.lede { color: var(--muted); margin: 0 0 20px; max-width: 70ch; }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+#channel-hint:not(:empty) { margin-bottom: 18px; }
+
+/* ── source cards ───────────────────────────────────────────────── */
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.cards button {
+  text-align: start; background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px; cursor: pointer; color: inherit;
+  font: inherit; transition: border-color .12s, transform .12s;
+}
+.cards button:hover { border-color: var(--brand); }
+.cards button.on { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
+.cards strong { display: block; font-size: 15px; }
+.cards em { font-style: normal; color: var(--muted); font-size: 12px; font-family: var(--mono); }
+
+/* ── forms ──────────────────────────────────────────────────────── */
+
+.form { margin-top: 24px; max-width: 620px; }
+.field { margin: 0 0 14px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+/* Every text field is left-to-right whichever language the page is in. What
+   goes in them is addresses, paths, usernames, tokens and codes — all of it
+   Latin and punctuation-heavy, and typing `https://host:2053/abc/` into an
+   RTL field puts the punctuation in places nobody can proofread. The labels
+   around them follow the page; the values do not. */
+input[type=text], input[type=password], input[type=search], textarea {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--bg); color: var(--ink);
+  font: 14px/1.4 var(--mono);
+  direction: ltr; text-align: left;
+}
+input:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; margin: 12px 0; }
+.check input { width: 16px; height: 16px; }
+.check.big { padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--line); }
+
+.actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+button.primary, button.ghost {
+  font: inherit; padding: 9px 18px; border-radius: 8px; cursor: pointer; border: 1px solid transparent;
+}
+button.primary { background: var(--brand); color: var(--brand-ink); }
+button.primary.danger { background: var(--bad); color: #fff; }
+button.ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+button.ghost.danger { color: var(--bad); border-color: var(--bad); }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+
+.spinner {
+  width: 16px; height: 16px; border: 2px solid var(--line);
+  border-top-color: var(--brand); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error, .warn-box {
+  margin-top: 16px; padding: 12px 14px; border-radius: 8px;
+  background: var(--bad-bg); color: var(--bad); font-size: 14px;
+  white-space: pre-wrap;
+}
+.warn-box { background: var(--warn-bg); color: var(--warn); }
+
+.notes { margin-bottom: 18px; }
+.notes div {
+  background: var(--warn-bg); color: var(--warn); padding: 10px 12px;
+  border-radius: 8px; font-size: 13px; margin-bottom: 6px;
+}
+
+/* ── tree ───────────────────────────────────────────────────────── */
+
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.toolbar input[type=search] { max-width: 260px; }
+.toolbar .grow { flex: 1; }
+.count { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+
+.tree {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  max-height: 60vh; overflow: auto; background: var(--bg);
+}
+.node { border-bottom: 1px solid var(--line); }
+.node:last-child { border-bottom: 0; }
+.node > .head {
+  display: flex; align-items: center; gap: 9px; padding: 8px 12px; cursor: pointer;
+}
+.node > .head:hover { background: color-mix(in srgb, var(--brand) 7%, transparent); }
+.node .kids { padding-inline-start: 22px; display: none; }
+.node.open > .kids { display: block; }
+.twist { width: 14px; color: var(--muted); font-size: 11px; transition: transform .12s; }
+.node.open > .head .twist { transform: rotate(90deg); }
+[dir=rtl] .twist { transform: scaleX(-1); }
+[dir=rtl] .node.open > .head .twist { transform: scaleX(-1) rotate(90deg); }
+
+.node .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .sub { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.leaf .label { font-family: var(--mono); font-size: 13px; }
+
+.badge {
+  font-size: 11px; padding: 1px 7px; border-radius: 20px; white-space: nowrap;
+  background: var(--line); color: var(--muted);
+}
+.badge.warn { background: var(--warn-bg); color: var(--warn); }
+.badge.blocked { background: var(--bad-bg); color: var(--bad); }
+
+.detail {
+  padding: 4px 12px 12px 34px; font-size: 12.5px; color: var(--muted);
+  display: none;
+}
+.leaf.open .detail { display: block; }
+.detail dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0 0 8px; }
+.detail dt { color: var(--muted); }
+.detail dd { margin: 0; font-family: var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.detail ul { margin: 0; padding-inline-start: 18px; }
+.detail li { margin-bottom: 3px; }
+.detail li.blocked { color: var(--bad); }
+
+/* ── plan / preflight / run ─────────────────────────────────────── */
+
+table.sum { border-collapse: collapse; width: 100%; max-width: 520px; margin: 10px 0 18px; font-size: 14px; }
+table.sum td { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+table.sum td:last-child { text-align: end; font-family: var(--mono); }
+
+.progress { height: 8px; background: var(--line); border-radius: 20px; overflow: hidden; margin: 18px 0 10px; }
+#bar, #up-bar { height: 100%; width: 0; background: var(--brand); transition: width .2s; }
+.counts { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+.log {
+  margin-top: 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg); max-height: 44vh; overflow: auto;
+  font-family: var(--mono); font-size: 12.5px;
+}
+.log div { padding: 4px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; }
+.log div:last-child { border-bottom: 0; }
+.log .st { width: 70px; flex: none; }
+.log .created .st { color: var(--ok); }
+.log .exists .st { color: var(--warn); }
+.log .failed .st { color: var(--bad); }
+.log .msg { color: var(--muted); overflow-wrap: anywhere; }
+
+#passwords table { border-collapse: collapse; margin: 8px 0 18px; font-size: 13px; }
+#passwords td { padding: 5px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); }
+
+.closed { text-align: center; padding: 120px 20px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .row { grid-template-columns: 1fr; }
+  main { padding: 12px; }
+  .panel { padding: 16px; }
+}
+
+/* ── channel and credential pickers, drop zone ──────────────────── */
+
+.channels, .auths {
+  display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 4px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
+}
+.auths { margin: 2px 0 14px; }
+.channels button, .auths button {
+  border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px;
+  padding: 6px 14px; border-radius: 6px; cursor: pointer;
+}
+.channels button.on, .auths button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+.drop {
+  margin: 14px 0; padding: 22px; text-align: center;
+  border: 1.5px dashed var(--line); border-radius: var(--radius); background: var(--bg);
+  transition: border-color .12s, background .12s;
+}
+.drop.over { border-color: var(--brand); background: var(--card); }
+.drop.has { border-style: solid; border-color: var(--ok); }
+.drop-idle, .drop-busy, .drop-done { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.drop-idle > span { color: var(--muted); font-size: 14px; }
+.drop-done strong { font-family: var(--mono); font-size: 14px; word-break: break-all; }
+.drop-done .sub { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.drop-busy { width: 100%; }
+.drop-busy > span { color: var(--muted); font-size: 13px; }
+.progress.thin { height: 4px; width: 100%; max-width: 320px; margin: 0; }
+
+.bypath { margin: 0 0 14px; }
+.bypath summary {
+  color: var(--muted); font-size: 13px; cursor: pointer; padding: 4px 0;
+  list-style-position: inside;
+}
+.bypath summary::marker { color: var(--line); }
+.bypath[open] summary { margin-bottom: 8px; }

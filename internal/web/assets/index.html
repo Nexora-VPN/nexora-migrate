@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexora Migration</title>
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <span class="dot"></span>
+    <strong data-i18n="title">Migrate to Nexora</strong>
+  </div>
+  <div class="bar-right">
+    <span class="origin" id="origin"></span>
+    <select class="lang" id="lang" aria-label="Language"></select>
+  </div>
+</header>
+
+<nav class="steps" id="steps">
+  <button type="button" data-step="1"><i>1</i><span data-i18n="step1">Source panel</span></button>
+  <button type="button" data-step="2"><i>2</i><span data-i18n="step2">Review &amp; select</span></button>
+  <button type="button" data-step="3"><i>3</i><span data-i18n="step3">Connect Nexora</span></button>
+  <button type="button" data-step="4"><i>4</i><span data-i18n="step4">Preview</span></button>
+  <button type="button" data-step="5"><i>5</i><span data-i18n="step5">Transfer</span></button>
+</nav>
+
+<main>
+
+<!-- ───────────────────────── step 1: source ───────────────────────── -->
+<section class="panel" data-panel="1">
+  <h1 data-i18n="s1.title">Which panel are you migrating from?</h1>
+  <p class="lede" data-i18n="s1.lede">Pick the source panel, then give it a database file or the address of the live panel.</p>
+
+  <div class="cards" id="sources"></div>
+
+  <form class="form" id="source-form" hidden>
+    <h2 id="source-title"></h2>
+    <p class="hint" id="source-hint"></p>
+
+    <!-- file or live panel, for the sources that can do both -->
+    <div class="channels" id="channels" hidden>
+      <button type="button" data-ch="file" data-i18n="ch.file">Database file</button>
+      <button type="button" data-ch="api" data-i18n="ch.api">Live panel</button>
+    </div>
+    <p class="hint" id="channel-hint"></p>
+
+    <!-- ── file ── -->
+    <div data-channel="file">
+      <div class="drop" id="drop">
+        <input type="file" id="file" hidden>
+        <div class="drop-idle" id="drop-idle">
+          <span data-i18n="s1.drop">Drop the database file here</span>
+          <button type="button" class="ghost" id="choose" data-i18n="s1.choose">Choose a file</button>
+        </div>
+        <div class="drop-busy" id="drop-busy" hidden>
+          <span data-i18n="s1.uploading">Uploading…</span>
+          <div class="progress thin"><div id="up-bar"></div></div>
+        </div>
+        <div class="drop-done" id="drop-done" hidden>
+          <strong id="file-name"></strong>
+          <span class="sub" id="file-size"></span>
+          <button type="button" class="ghost" id="rechoose" data-i18n="s1.replace">Choose another file</button>
+        </div>
+      </div>
+
+      <details class="bypath" id="bypath">
+        <summary data-i18n="s1.orpath">Or, if you are running this on the server itself, give the path to the file instead:</summary>
+        <div class="field">
+          <label for="path" data-i18n="f.path">Path on this machine</label>
+          <input type="text" id="path" dir="ltr" spellcheck="false" autocomplete="off">
+        </div>
+      </details>
+    </div>
+
+    <!-- ── live panel ── -->
+    <div class="field" data-channel="api">
+      <label for="baseUrl" data-i18n="f.url">Panel address</label>
+      <input type="text" id="baseUrl" dir="ltr" placeholder="https://panel.example.com:2053" spellcheck="false" autocomplete="off">
+      <small data-i18n="f.urlhint">Paste it exactly as you open it in your browser, including the panel's secret path if it has one.</small>
+    </div>
+    <div class="auths" id="auths" data-channel="api" hidden>
+      <button type="button" data-auth-mode="login" data-i18n="auth.login">Username &amp; password</button>
+      <button type="button" data-auth-mode="token" data-i18n="auth.token">API token</button>
+    </div>
+
+    <div class="row" data-channel="api" data-auth="login">
+      <div class="field">
+        <label for="username" data-i18n="f.user">Username</label>
+        <input type="text" id="username" dir="ltr" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="password" data-i18n="f.pass">Password</label>
+        <input type="password" id="password" dir="ltr" autocomplete="off">
+      </div>
+    </div>
+    <div class="field" data-channel="api" data-auth="login" data-twofactor="1">
+      <label for="twoFactor" data-i18n="f.2fa">Two-factor code (only if this panel asks for one)</label>
+      <input type="text" id="twoFactor" dir="ltr" spellcheck="false" autocomplete="off" inputmode="numeric" placeholder="123456">
+    </div>
+    <div class="field" data-channel="api" data-auth="token">
+      <label for="token" data-i18n="f.token">API token</label>
+      <input type="text" id="token" dir="ltr" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field" data-channel="api" data-proxy="1">
+      <label for="proxyPath" data-i18n="f.proxy">Secret panel path (Hiddify)</label>
+      <input type="text" id="proxyPath" dir="ltr" spellcheck="false" autocomplete="off" placeholder="a1b2c3d4">
+    </div>
+    <label class="check" data-channel="api">
+      <input type="checkbox" id="insecure">
+      <span data-i18n="f.insecure">Accept a self-signed TLS certificate</span>
+    </label>
+
+    <div class="actions">
+      <button type="submit" class="primary" id="read-btn" data-i18n="s1.read">Read the source panel</button>
+      <span class="spinner" id="read-spin" hidden></span>
+    </div>
+    <div class="error" id="read-error" hidden></div>
+  </form>
+</section>
+
+<!-- ───────────────────────── step 2: review ───────────────────────── -->
+<section class="panel" data-panel="2" hidden>
+  <h1 data-i18n="s2.title">What should move?</h1>
+  <p class="lede" data-i18n="s2.lede">Every row is one converted item. Groups nest: take all the inbounds, one group, or single rows.</p>
+
+  <div class="notes" id="bundle-notes"></div>
+
+  <div class="toolbar">
+    <input type="search" id="filter" dir="ltr" data-i18n-ph="s2.filter" placeholder="Search names…">
+    <label class="check"><input type="checkbox" id="only-warn"><span data-i18n="s2.onlywarn">Only items with warnings</span></label>
+    <span class="grow"></span>
+    <button type="button" class="ghost" id="select-all" data-i18n="s2.all">Select all</button>
+    <button type="button" class="ghost" id="select-none" data-i18n="s2.none">None</button>
+    <strong class="count" id="sel-count"></strong>
+  </div>
+
+  <div class="tree" id="tree"></div>
+
+  <div class="actions">
+    <button type="button" class="ghost" data-goto="1" data-i18n="back">Back</button>
+    <button type="button" class="primary" data-goto="3" data-i18n="s2.next">Continue to Nexora</button>
+  </div>
+</section>
+
+<!-- ───────────────────────── step 3: target ───────────────────────── -->
+<section class="panel" data-panel="3" hidden>
+  <h1 data-i18n="s3.title">Connect to Nexora</h1>
+  <p class="lede" data-i18n="s3.lede">Everything is written through the panel's public API — never straight into its database — so subscription tokens, template membership, node syncing and the licence cap all happen properly.</p>
+
+  <form class="form" id="target-form">
+    <div class="field">
+      <label for="t-url" data-i18n="f.url">Panel address</label>
+      <input type="text" id="t-url" dir="ltr" placeholder="https://panel.example.com" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="auths" id="t-auths">
+      <button type="button" data-auth-mode="login" data-i18n="auth.login">Username &amp; password</button>
+      <button type="button" data-auth-mode="token" data-i18n="auth.token">API token</button>
+    </div>
+
+    <div class="row" data-tauth="login">
+      <div class="field">
+        <label for="t-user" data-i18n="f.user">Username</label>
+        <input type="text" id="t-user" dir="ltr" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="t-pass" data-i18n="f.pass">Password</label>
+        <input type="password" id="t-pass" dir="ltr" autocomplete="off">
+      </div>
+    </div>
+    <div class="field" data-tauth="login">
+      <label for="t-code" data-i18n="f.code">Authenticator code (only if two-factor sign-in is on)</label>
+      <input type="text" id="t-code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" spellcheck="false">
+    </div>
+    <div class="field" data-tauth="token">
+      <label for="t-token" data-i18n="f.token">API token</label>
+      <input type="text" id="t-token" dir="ltr" spellcheck="false" autocomplete="off">
+    </div>
+    <label class="check">
+      <input type="checkbox" id="t-insecure">
+      <span data-i18n="f.insecure">Accept a self-signed TLS certificate</span>
+    </label>
+
+    <div class="actions">
+      <button type="button" class="ghost" data-goto="2" data-i18n="back">Back</button>
+      <button type="submit" class="primary" data-i18n="s3.connect">Connect</button>
+      <span class="spinner" id="conn-spin" hidden></span>
+    </div>
+    <div class="error" id="conn-error" hidden></div>
+  </form>
+
+  <div id="preflight" hidden></div>
+</section>
+
+<!-- ───────────────────────── step 4: plan ───────────────────────── -->
+<section class="panel" data-panel="4" hidden>
+  <h1 data-i18n="s4.title">Before anything is written</h1>
+  <p class="lede" data-i18n="s4.lede">Nothing has been written yet. This is exactly what will happen.</p>
+  <div id="plan"></div>
+
+  <label class="check big">
+    <input type="checkbox" id="pause-nodes" checked>
+    <span data-i18n="s4.pause">Switch the nodes off during the transfer (and sync them once at the end)</span>
+  </label>
+  <p class="hint" data-i18n="s4.pausewhy">Nexora has no bulk create: every new account is pushed to each of its nodes. With the nodes paused, 20,000 accounts means zero pushes during the run and one sync at the end.</p>
+
+  <div class="field" id="confirm-box" hidden>
+    <label for="confirm-code" data-i18n="s4.code">This account signed in with a second factor and the selection creates admins, which the panel confirms with a fresh code. Enter the current code from the authenticator app.</label>
+    <input type="text" id="confirm-code" dir="ltr" inputmode="numeric" autocomplete="one-time-code" spellcheck="false">
+  </div>
+
+  <div class="actions">
+    <button type="button" class="ghost" data-goto="2" data-i18n="s4.back">Back to the selection</button>
+    <button type="button" class="primary danger" id="go" data-i18n="s4.go">Start the transfer</button>
+  </div>
+</section>
+
+<!-- ───────────────────────── step 5: run ───────────────────────── -->
+<section class="panel" data-panel="5" hidden>
+  <h1 data-i18n="s5.title">Transferring</h1>
+  <div class="progress"><div id="bar"></div></div>
+  <p class="counts" id="run-counts"></p>
+
+  <div class="log" id="log"></div>
+
+  <div id="run-done" hidden>
+    <h2 data-i18n="s5.done">Transfer finished</h2>
+    <div id="passwords"></div>
+    <div id="run-notes"></div>
+    <div class="actions">
+      <button type="button" class="ghost" id="save-report" data-i18n="s5.save">Save the report</button>
+      <button type="button" class="primary" id="finish" data-i18n="s5.finish">Finish and close the program</button>
+    </div>
+  </div>
+  <div class="actions" id="run-actions">
+    <button type="button" class="ghost danger" id="cancel" data-i18n="s5.cancel">Stop</button>
+  </div>
+</section>
+
+</main>
+
+<div class="closed" id="closed" hidden>
+  <h1 data-i18n="bye.title">The program has closed</h1>
+  <p data-i18n="bye.body">You can close this page.</p>
+</div>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>
