@@ -48,12 +48,41 @@ function t(key, vars) {
   return s;
 }
 
+/* A password typed here is a source panel's, read back by nobody else: a
+   reveal button beside each lets the operator check what landed — pasted
+   from a password manager, a mistyped one is otherwise a failed import with
+   no clue why. */
+const EYE = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><path stroke="currentColor" stroke-width="2" d="M3 3l18 18"/></svg>';
+function labelReveal(btn) {
+  const shown = btn.previousElementSibling.type === "text";
+  btn.innerHTML = shown ? EYE_OFF : EYE;
+  btn.setAttribute("aria-label", t(shown ? "f.hide" : "f.show"));
+  btn.title = t(shown ? "f.hide" : "f.show");
+}
+for (const input of document.querySelectorAll('input[type="password"]')) {
+  const wrap = document.createElement("span");
+  wrap.className = "secret";
+  input.replaceWith(wrap);
+  wrap.append(input);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "reveal";
+  btn.onclick = () => {
+    input.type = input.type === "password" ? "text" : "password";
+    labelReveal(btn);
+  };
+  wrap.append(btn);
+  labelReveal(btn);
+}
+
 function applyLang() {
   const meta = LANGS.find((l) => l.id === lang) || LANGS[0];
   document.documentElement.lang = meta.id;
   document.documentElement.dir = meta.dir;
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
   for (const el of document.querySelectorAll("[data-i18n-ph]")) el.placeholder = t(el.dataset.i18nPh);
+  for (const el of document.querySelectorAll("button.reveal")) labelReveal(el);
   localStorage.setItem("nx-lang", lang);
   document.getElementById("lang").value = lang;
 

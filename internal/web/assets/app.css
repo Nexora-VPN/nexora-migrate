@@ -112,6 +112,12 @@ h2 { font-size: 16px; margin: 22px 0 8px; }
 
 .form { margin-top: 24px; max-width: 620px; }
 .field { margin: 0 0 14px; }
+/* Left-to-right like the field inside (below), so the eye sits at its end
+   in every language; [type] outweighs the field rule's padding. */
+.secret { position: relative; display: block; direction: ltr; }
+.secret input[type] { padding-inline-end: 2.6em; }
+.reveal { position: absolute; inset-inline-end: 0.5em; top: 50%; transform: translateY(-50%); display: flex; padding: 2px; border: 0; background: none; color: inherit; opacity: 0.65; cursor: pointer; }
+.reveal:hover, .reveal:focus-visible { opacity: 1; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
 /* Every text field is left-to-right whichever language the page is in. What
