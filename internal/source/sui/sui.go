@@ -278,6 +278,21 @@ func readBaseConfig(b *bundle.Bundle, settings map[string]string, inbounds map[i
 		return ""
 	}
 
+	// Routing an s-ui operator also ran on clients may match on the process,
+	// the app, the Wi-Fi network or a LAN neighbour; Nexora refuses those, so
+	// they are dropped here and the import names each one.
+	var dropped []string
+	if v, ok := cfg["route"]; ok && !isEmptyJSON(v) {
+		var gone []string
+		cfg["route"], gone = convert.DropClientOnlyRoute(v)
+		dropped = append(dropped, gone...)
+	}
+	if v, ok := cfg["dns"]; ok && !isEmptyJSON(v) {
+		var gone []string
+		cfg["dns"], gone = convert.DropClientOnlyDNS(v)
+		dropped = append(dropped, gone...)
+	}
+
 	core := map[string]json.RawMessage{}
 	for _, key := range []string{"dns", "log", "ntp"} {
 		if v, ok := cfg[key]; ok && !isEmptyJSON(v) {
@@ -308,6 +323,9 @@ func readBaseConfig(b *bundle.Bundle, settings map[string]string, inbounds map[i
 		}
 		it.IDRefs = map[string][]string{"inboundIds": ids}
 		it.Set("inbounds", strconv.Itoa(len(ids)))
+	}
+	if len(dropped) > 0 {
+		it.AddNote("client-only options were dropped — Nexora nodes are servers and refuse them: %s", strings.Join(dropped, "; "))
 	}
 	if _, ok := cfg["experimental"]; ok {
 		it.AddNote("s-ui's `experimental` block was dropped — Nexora manages Clash API and cache itself")
